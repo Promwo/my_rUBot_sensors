@@ -1,0 +1,10 @@
+/**:
+  ros__parameters:
+    use_sim_time: false
+
+air_quality_node:
+  ros__parameters:
+    port: /dev/ens160
+    baud_rate: 9600
+    timeout: 0.05
+    poll_period: 0.02

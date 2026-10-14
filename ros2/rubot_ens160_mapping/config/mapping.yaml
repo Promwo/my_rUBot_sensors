@@ -1,0 +1,9 @@
+/**:
+  ros__parameters:
+    input_topic: /ens160/readings
+    target_frame: map
+    robot_frame: base_link
+    output_directory: ~/rubot_sensor_measurements
+    eco2_min_ppm: 400.0
+    eco2_max_ppm: 1500.0
+    maximum_cloud_points: 10000

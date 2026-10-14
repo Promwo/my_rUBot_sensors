@@ -36,6 +36,15 @@ MANIFEST
 pip-log.txt
 pip-delete-this-directory.txt
 
+# ROS 2 workspace outputs
+/build/
+/install/
+/log/
+
+# Generated sensor data and results
+/measurements/
+/results/
+
 # Unit test / coverage reports
 htmlcov/
 .tox/
