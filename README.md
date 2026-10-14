@@ -27,6 +27,9 @@ starting with
 The repository is designed to support additional sensors later without moving
 their generic drivers into this project.
 
+The hardware launch extends the robust rUBot bringup from
+`my_rUBot_mecanum`; it does not reimplement robot-device startup.
+
 ## Workspace layout
 
 The three repositories are independent clones inside the same ROS 2 workspace:

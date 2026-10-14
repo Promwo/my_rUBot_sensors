@@ -12,6 +12,12 @@ The firmware and generic ROS 2 publisher are maintained in
 `ENS160_air_quality`. This repository consumes the `/ens160/readings` topic and
 adds robot and map context.
 
+The combined `ens160_robot.launch.py` delegates robot startup to
+`my_robot_bringup_robust_hw.launch.py`. That launch waits for the persistent
+robot, LiDAR and camera device aliases before starting their drivers. The
+integration launch independently waits until `/dev/ens160` can be opened
+before starting the ENS160 ROS 2 node.
+
 Before hardware operation, verify the physical board, sensor mounting
 positions and electrical connections.
 
