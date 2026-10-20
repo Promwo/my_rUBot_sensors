@@ -57,7 +57,7 @@ class ECO2CloudNode(Node):
 
         try:
             transform = self.tf_buffer.lookup_transform(
-                'odom', 'base_link', Time())
+                'map', 'base_link', Time())
             point_in_map = do_transform_point(point_in_sensor_frame, transform)
 
             # Append the point with normalized intensity
@@ -75,7 +75,7 @@ class ECO2CloudNode(Node):
         # Create PointCloud2 header
         header = Header()
         header.stamp = self.get_clock().now().to_msg()
-        header.frame_id = 'odom'
+        header.frame_id = 'map'
 
         # Define fields for the PointCloud2
         fields = [

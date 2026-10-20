@@ -55,7 +55,7 @@ class CSVLoggerCO2Cloud(Node):
     def get_map_pose(self):
         try:
             t = self.tf_buffer.lookup_transform(
-                'odom',            # target frame
+                'map',            # target frame
                 'base_link',      # source frame
                 rclpy.time.Time()
             )
