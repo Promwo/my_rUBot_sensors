@@ -1,4 +1,5 @@
-"""Launch the robust physical rUBot bringup together with the ENS160 array."""
+
+"""Launch the robust physical rUBot bringup together with the ENS160 array and gas mapping."""
 
 import os
 
@@ -9,16 +10,21 @@ from launch.actions import (
     EmitEvent,
     ExecuteProcess,
     IncludeLaunchDescription,
-    LogError,
+    LogInfo,
     RegisterEventHandler,
 )
 from launch.event_handlers import OnProcessExit
 from launch.events import Shutdown
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
 
 
 def generate_launch_description():
+    # ============================================================
+    # 1. Configuracion de parametros
+    # ============================================================
+
     robot_model = LaunchConfiguration("robot_model")
     robot_port = LaunchConfiguration("robot_port")
     lidar_port = LaunchConfiguration("lidar_port")
@@ -31,12 +37,19 @@ def generate_launch_description():
     sensor_port = LaunchConfiguration("sensor_port")
     sensor_baud_rate = LaunchConfiguration("sensor_baud_rate")
 
+    # ============================================================
+    # 2. Lanzamiento del robot fisico
+    #    Motores mecanum + odometria + TF + LiDAR + camara
+    # ============================================================
+
     robot_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(os.path.join(
-            get_package_share_directory("my_robot_bringup"),
-            "launch",
-            "my_robot_bringup_robust_hw.launch.py",
-        )),
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory("my_robot_bringup"),
+                "launch",
+                "my_robot_bringup_robust_hw.launch.py",
+            )
+        ),
         launch_arguments={
             "robot_model": robot_model,
             "mecanum_serial_port": robot_port,
@@ -50,17 +63,27 @@ def generate_launch_description():
         }.items(),
     )
 
+    # ============================================================
+    # 3. Lanzamiento de los sensores ENS160
+    # ============================================================
+
     sensor_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(os.path.join(
-            get_package_share_directory("ens160_air_quality_ros"),
-            "launch",
-            "air_quality.launch.py",
-        )),
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory("ens160_air_quality_ros"),
+                "launch",
+                "air_quality.launch.py",
+            )
+        ),
         launch_arguments={
             "port": sensor_port,
             "baud_rate": sensor_baud_rate,
         }.items(),
     )
+
+    # ============================================================
+    # 4. Comprobacion del puerto de los sensores
+    # ============================================================
 
     wait_for_sensor = ExecuteProcess(
         cmd=[
@@ -70,8 +93,10 @@ def generate_launch_description():
                 "scripts",
                 "wait_for_devices.py",
             ),
-            "--serial", sensor_port,
-            "--timeout", "30",
+            "--serial",
+            sensor_port,
+            "--timeout",
+            "30",
         ],
         output="screen",
         name="wait_for_ens160_device",
@@ -79,11 +104,19 @@ def generate_launch_description():
 
     def start_sensor_after_wait(event, context):
         del context
+
         if event.returncode != 0:
             return [
-                LogError(msg="ENS160 device check failed; stopping bringup."),
-                EmitEvent(event=Shutdown(reason="ENS160 device is not ready")),
+                LogInfo(
+                    msg="ENS160 device check failed; stopping bringup."
+                ),
+                EmitEvent(
+                    event=Shutdown(
+                        reason="ENS160 device is not ready"
+                    )
+                ),
             ]
+
         return [sensor_launch]
 
     start_sensor_when_ready = RegisterEventHandler(
@@ -93,21 +126,87 @@ def generate_launch_description():
         )
     )
 
+    # ============================================================
+    # 5. Logger CSV de mediciones ENS160 y posicion
+    # ============================================================
+
+    csv_logger = Node(
+        package="rubot_ens160_mapping",
+        executable="csv_logger_co2cloud",
+        name="csv_logger_co2cloud",
+        output="screen",
+    )
+
+    # ============================================================
+    # 6. Nube de puntos de eCO2
+    # ============================================================
+
+    eco2_cloud = Node(
+        package="rubot_ens160_mapping",
+        executable="eco2_cloud",
+        name="eco2_cloud",
+        output="screen",
+    )
+
+    # ============================================================
+    # 7. Descripcion completa del lanzamiento
+    # ============================================================
+
     return LaunchDescription([
+        # Parametros del robot
         DeclareLaunchArgument(
-            "robot_model", default_value="rubot_arm/my_simple_robot.urdf"
+            "robot_model",
+            default_value="rubot_arm/my_simple_robot.urdf",
         ),
-        DeclareLaunchArgument("robot_port", default_value="/dev/robot_arduino"),
-        DeclareLaunchArgument("lidar_port", default_value="/dev/robot_lidar"),
-        DeclareLaunchArgument("lidar_frame_id", default_value="base_scan"),
-        DeclareLaunchArgument("camera_device", default_value="/dev/robot_camera"),
-        DeclareLaunchArgument("camera_width", default_value="640"),
-        DeclareLaunchArgument("camera_height", default_value="480"),
-        DeclareLaunchArgument("camera_pixel_format", default_value="YUYV"),
-        DeclareLaunchArgument("camera_output_encoding", default_value="rgb8"),
-        DeclareLaunchArgument("sensor_port", default_value="/dev/ens160"),
-        DeclareLaunchArgument("sensor_baud_rate", default_value="9600"),
+        DeclareLaunchArgument(
+            "robot_port",
+            default_value="/dev/robot_arduino",
+        ),
+        DeclareLaunchArgument(
+            "lidar_port",
+            default_value="/dev/robot_lidar",
+        ),
+        DeclareLaunchArgument(
+            "lidar_frame_id",
+            default_value="base_scan",
+        ),
+        DeclareLaunchArgument(
+            "camera_device",
+            default_value="/dev/robot_camera",
+        ),
+        DeclareLaunchArgument(
+            "camera_width",
+            default_value="640",
+        ),
+        DeclareLaunchArgument(
+            "camera_height",
+            default_value="480",
+        ),
+        DeclareLaunchArgument(
+            "camera_pixel_format",
+            default_value="YUYV",
+        ),
+        DeclareLaunchArgument(
+            "camera_output_encoding",
+            default_value="rgb8",
+        ),
+        DeclareLaunchArgument(
+            "sensor_port",
+            default_value="/dev/ens160",
+        ),
+        DeclareLaunchArgument(
+            "sensor_baud_rate",
+            default_value="9600",
+        ),
+
+        # Robot completo
         robot_launch,
+
+        # Sensores ENS160
         start_sensor_when_ready,
         wait_for_sensor,
+
+        # Registro y mapeo de gases
+        csv_logger,
+        eco2_cloud,
     ])

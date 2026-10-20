@@ -22,5 +22,10 @@ setup(
     maintainer_email="manel.puig@ub.edu",
     description="Spatial logging and mapping for rUBot ENS160 measurements.",
     license="Apache-2.0",
-    entry_points={"console_scripts": []},
+    entry_points={
+        "console_scripts": [
+            "csv_logger_co2cloud = rubot_ens160_mapping.csv_logger_co2cloud:main",
+            "eco2_cloud = rubot_ens160_mapping.eco2_cloud:main",
+        ],
+    },
 )
